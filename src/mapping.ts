@@ -1,60 +1,55 @@
-import { BigInt } from "@graphprotocol/graph-ts"
-import { Contract, Attested, Revoked } from "../generated/Contract/Contract"
-import { ExampleEntity } from "../generated/schema"
+import {
+  Address,
+  ethereum,
+  log,
+  ByteArray,
+  BigInt,
+  Bytes,
+} from "@graphprotocol/graph-ts";
+import { Contract, Attested, Revoked } from "../generated/Contract/Contract";
+import { Message, User } from "../generated/schema";
 
 export function handleAttested(event: Attested): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+  let usernameUUID =
+    "0x1a1aac09dcf87a6662ca6f7cfda6cf8ab0d7e2b6fc4afcde3112480a36c563b1";
+  let messageUUID =
+    "0xa082b0a64557fd912265053a2bf90213dc3813f26ba3d116122b3ee30d5f6f9d";
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (entity == null) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
+  if (event.params.schema.toHexString() == messageUUID) {
+    let entity = new Message(event.params.uuid.toHex());
 
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+    entity.recipient = event.params.recipient.toHexString();
+    entity.attester = event.params.attester.toHexString();
+
+    let contract = Contract.bind(event.address);
+
+    let att = contract.getAttestation(event.params.uuid);
+    entity.data = att.data;
+    entity.time = att.time;
+    entity.user = att.attester.toHex();
+    entity.revoked = false;
+    entity.save();
   }
+  if (event.params.schema.toHexString() == usernameUUID) {
+    let contract = Contract.bind(event.address);
+    let att = contract.getAttestation(event.params.uuid);
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+    let user = User.load(att.attester.toHex());
 
-  // Entity fields can be set based on event parameters
-  entity.recipient = event.params.recipient
-  entity.attester = event.params.attester
+    if (user === null) {
+      user = new User(att.attester.toHex());
+    }
 
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.VERSION(...)
-  // - contract.getASRegistry(...)
-  // - contract.getAttestation(...)
-  // - contract.getAttestationsCount(...)
-  // - contract.getEIP712Verifier(...)
-  // - contract.getReceivedAttestationUUIDs(...)
-  // - contract.getReceivedAttestationUUIDsCount(...)
-  // - contract.getRelatedAttestationUUIDs(...)
-  // - contract.getRelatedAttestationUUIDsCount(...)
-  // - contract.getSchemaAttestationUUIDs(...)
-  // - contract.getSchemaAttestationUUIDsCount(...)
-  // - contract.getSentAttestationUUIDs(...)
-  // - contract.getSentAttestationUUIDsCount(...)
-  // - contract.isAttestationValid(...)
+    user.usernameData = att.data;
+    user.updated = att.time;
+    user.save();
+  }
 }
 
-export function handleRevoked(event: Revoked): void {}
+export function handleRevoked(event: Revoked): void {
+  let entity = Message.load(event.params.uuid.toHex());
+  if (entity) {
+    entity.revoked = true;
+    entity.save();
+  }
+}

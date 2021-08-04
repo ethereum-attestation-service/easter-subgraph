@@ -1,6 +1,15 @@
-type ExampleEntity @entity {
+type Message @entity {
   id: ID!
-  count: BigInt!
-  recipient: Bytes! # address
-  attester: Bytes! # address
+  data: Bytes!
+  recipient: String! # address
+  attester: String! # address
+  time: BigInt!
+  revoked: Boolean!
+  user: User
+}
+
+type User @entity {
+  id: ID!
+  usernameData: Bytes!
+  updated: BigInt!
 }
