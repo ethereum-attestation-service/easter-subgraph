@@ -3,9 +3,12 @@ type Message @entity {
   data: Bytes!
   recipient: String! # address
   attester: String! # address
+  refUUID: Message
+  refUUIDString: String!
   time: BigInt!
   revoked: Boolean!
   user: User
+  relatedMessages: [Message!] @derivedFrom(field: "refUUID")
 }
 
 type User @entity {

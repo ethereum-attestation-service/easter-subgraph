@@ -15,6 +15,7 @@ export function handleAttested(event: Attested): void {
   let messageUUID =
     "0xa082b0a64557fd912265053a2bf90213dc3813f26ba3d116122b3ee30d5f6f9d";
 
+  // Filter new massages
   if (event.params.schema.toHexString() == messageUUID) {
     let entity = new Message(event.params.uuid.toHex());
 
@@ -27,9 +28,13 @@ export function handleAttested(event: Attested): void {
     entity.data = att.data;
     entity.time = att.time;
     entity.user = att.attester.toHex();
+    entity.refUUID = att.refUUID.toHex();
+    entity.refUUIDString = att.refUUID.toHex();
     entity.revoked = false;
     entity.save();
   }
+
+  // Filter username changes
   if (event.params.schema.toHexString() == usernameUUID) {
     let contract = Contract.bind(event.address);
     let att = contract.getAttestation(event.params.uuid);
